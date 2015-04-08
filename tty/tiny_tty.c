@@ -12,7 +12,7 @@
  * from some kind of hardware.
  */
 
-#include <linux/config.h>
+#include <linux/autoconf.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/init.h>
@@ -526,10 +526,10 @@ static int __init tiny_init(void)
 		return -ENOMEM;
 
 	/* initialize the tty driver */
-	tiny_tty_driver->owner = THIS_MODULE;
+	//tiny_tty_driver->owner = THIS_MODULE;
 	tiny_tty_driver->driver_name = "tiny_tty";
 	tiny_tty_driver->name = "ttty";
-	tiny_tty_driver->devfs_name = "tts/ttty%d";
+	//tiny_tty_driver->devfs_name = "tts/ttty%d";
 	tiny_tty_driver->major = TINY_TTY_MAJOR,
 	tiny_tty_driver->type = TTY_DRIVER_TYPE_SERIAL,
 	tiny_tty_driver->subtype = SERIAL_TYPE_NORMAL,

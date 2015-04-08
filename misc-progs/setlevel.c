@@ -27,7 +27,7 @@
 #include <linux/unistd.h>
 
 /* define the system call, to override the library function */
-_syscall3(int, syslog, int, type, char *, bufp, int, len);
+//_syscall3(int, syslog, int, type, char *, bufp, int, len);
 
 int main(int argc, char **argv)
 {

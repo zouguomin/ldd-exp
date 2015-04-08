@@ -14,13 +14,15 @@
  * we cannot take responsibility for errors or fitness for use.
  */
 
-#include <linux/config.h>
+#include <linux/autoconf.h>
 #include <linux/module.h>
 
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/utsname.h>
 #include <linux/errno.h>
+
+#define system_utsname init_uts_ns.name
 
 static void data_cleanup(void)
 {

@@ -13,7 +13,7 @@
  *
  */
 
-#include <linux/config.h>
+#include <linux/autoconf.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/init.h>
@@ -221,7 +221,7 @@ static struct file_operations skel_fops = {
 static struct usb_class_driver skel_class = {
 	.name = "usb/skel%d",
 	.fops = &skel_fops,
-	.mode = S_IFCHR | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH,
+	//.mode = S_IFCHR | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH,
 	.minor_base = USB_SKEL_MINOR_BASE,
 };
 
@@ -293,7 +293,7 @@ static int skel_probe(struct usb_interface *interface, const struct usb_device_i
 	}
 
 	/* let the user know what node this device is now attached to */
-	info("USB Skeleton device now attached to USBSkel-%d", interface->minor);
+	//info("USB Skeleton device now attached to USBSkel-%d", interface->minor);
 	return 0;
 
 error:
@@ -321,11 +321,11 @@ static void skel_disconnect(struct usb_interface *interface)
 	/* decrement our usage count */
 	kref_put(&dev->kref, skel_delete);
 
-	info("USB Skeleton #%d now disconnected", minor);
+	//info("USB Skeleton #%d now disconnected", minor);
 }
 
 static struct usb_driver skel_driver = {
-	.owner = THIS_MODULE,
+	//.owner = THIS_MODULE,
 	.name = "skeleton",
 	.id_table = skel_table,
 	.probe = skel_probe,

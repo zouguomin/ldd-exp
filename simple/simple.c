@@ -15,7 +15,7 @@
  * $Id: simple.c,v 1.12 2005/01/31 16:15:31 rubini Exp $
  */
 
-#include <linux/config.h>
+#include <linux/autoconf.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -112,7 +112,7 @@ struct page *simple_vma_nopage(struct vm_area_struct *vma,
 	printk (KERN_NOTICE "VA is %p\n", __va (physaddr));
 	printk (KERN_NOTICE "Page at %p\n", virt_to_page (__va (physaddr)));
 	if (!pfn_valid(pageframe))
-		return NOPAGE_SIGBUS;
+		return /*NOPAGE_SIGBUS*/NULL;
 	pageptr = pfn_to_page(pageframe);
 	printk (KERN_NOTICE "page->index = %ld mapping %p\n", pageptr->index, pageptr->mapping);
 	printk (KERN_NOTICE "Page frame %ld\n", pageframe);
@@ -125,7 +125,7 @@ struct page *simple_vma_nopage(struct vm_area_struct *vma,
 static struct vm_operations_struct simple_nopage_vm_ops = {
 	.open =   simple_vma_open,
 	.close =  simple_vma_close,
-	.nopage = simple_vma_nopage,
+	//.nopage = simple_vma_nopage,
 };
 
 static int simple_nopage_mmap(struct file *filp, struct vm_area_struct *vma)
