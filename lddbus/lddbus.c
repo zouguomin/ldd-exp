@@ -46,7 +46,8 @@ static int ldd_hotplug(struct device *dev, char **envp, int num_envp,
  */
 static int ldd_match(struct device *dev, struct device_driver *driver)
 {
-	return !strncmp(dev->bus_id, driver->name, strlen(driver->name));
+	//return !strncmp(dev->bus_id, driver->name, strlen(driver->name));
+	return !strncmp(dev_name(dev), driver->name, strlen(driver->name));
 }
 
 
@@ -59,7 +60,8 @@ static void ldd_bus_release(struct device *dev)
 }
 	
 struct device ldd_bus = {
-	.bus_id   = "ldd0",
+	//.bus_id   = "ldd0",
+	.init_name   = "ldd0",
 	.release  = ldd_bus_release
 };
 
@@ -70,7 +72,7 @@ struct device ldd_bus = {
 struct bus_type ldd_bus_type = {
 	.name = "ldd",
 	.match = ldd_match,
-	.hotplug  = ldd_hotplug,
+	//.hotplug  = ldd_hotplug,
 };
 
 /*
@@ -102,7 +104,8 @@ int register_ldd_device(struct ldd_device *ldddev)
 	ldddev->dev.bus = &ldd_bus_type;
 	ldddev->dev.parent = &ldd_bus;
 	ldddev->dev.release = ldd_dev_release;
-	strncpy(ldddev->dev.bus_id, ldddev->name, BUS_ID_SIZE);
+	//strncpy(ldddev->dev.bus_id, ldddev->name, BUS_ID_SIZE);
+	dev_set_name(ldddev, ldddev->name);
 	return device_register(&ldddev->dev);
 }
 EXPORT_SYMBOL(register_ldd_device);
@@ -136,7 +139,7 @@ int register_ldd_driver(struct ldd_driver *driver)
 	if (ret)
 		return ret;
 	driver->version_attr.attr.name = "version";
-	driver->version_attr.attr.owner = driver->module;
+//	driver->version_attr.attr.owner = driver->module;
 	driver->version_attr.attr.mode = S_IRUGO;
 	driver->version_attr.show = show_version;
 	driver->version_attr.store = NULL;
