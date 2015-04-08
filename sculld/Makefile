@@ -2,6 +2,8 @@
 # Comment/uncomment the following line to enable/disable debugging
 #DEBUG = y
 
+#
+KBUILD_EXTRA_SYMBOLS=$(shell pwd)/../lddbus/Module.symvers
 
 ifeq ($(DEBUG),y)
   DEBFLAGS = -O -g -DSCULLD_DEBUG # "-O" is needed to expand inlines
@@ -20,6 +22,7 @@ sculld-objs := main.o mmap.o
 obj-m	:= sculld.o
 
 else
+
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 PWD       := $(shell pwd)

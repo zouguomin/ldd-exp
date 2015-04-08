@@ -105,7 +105,7 @@ int register_ldd_device(struct ldd_device *ldddev)
 	ldddev->dev.parent = &ldd_bus;
 	ldddev->dev.release = ldd_dev_release;
 	//strncpy(ldddev->dev.bus_id, ldddev->name, BUS_ID_SIZE);
-	dev_set_name(ldddev, ldddev->name);
+	dev_set_name(&ldddev->dev, ldddev->name);
 	return device_register(&ldddev->dev);
 }
 EXPORT_SYMBOL(register_ldd_device);
