@@ -13,7 +13,7 @@ EXTRA_CFLAGS  += $(DEBFLAGS) -I$(LDDINCDIR)
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 
-obj-m	:= platform.o
+obj-m	:= plat_drv.o plat.o
 
 else
 
@@ -28,7 +28,7 @@ endif
 
 
 clean:
-	rm -rf *.o *.ko *~ core .depend *.mod.c .*.cmd .tmp_versions .*.o.d
+	rm -rf *.o *.ko *~ core .depend *.mod.c .*.cmd .tmp_versions .*.o.d modules.order  Module.symvers
 
 depend .depend dep:
 	$(CC) $(CFLAGS) -M *.c > .depend
