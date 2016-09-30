@@ -29,7 +29,13 @@
 #include <linux/seq_file.h>
 #include <linux/cdev.h>
 
-#include <asm/system.h>		/* cli(), *_flags */
+//#include <asm/system.h>		/* cli(), *_flags */
+#include <linux/version.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)
+#include <asm/switch_to.h>
+#else
+#include <asm/system.h>
+#endif
 #include <asm/uaccess.h>	/* copy_*_user */
 
 #include "scull.h"		/* local definitions */
@@ -553,7 +559,7 @@ struct file_operations scull_fops = {
 	.llseek =   scull_llseek,
 	.read =     scull_read,
 	.write =    scull_write,
-	.ioctl =    scull_ioctl,
+	.unlocked_ioctl =    scull_ioctl,
 	.open =     scull_open,
 	.release =  scull_release,
 };

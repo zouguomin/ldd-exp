@@ -5,7 +5,7 @@
 
 SUBDIRS =  misc-progs misc-modules \
            skull scull scullc sculld scullp scullv \
-	   short shortprint pci simple usb 
+	   short shortprint pci simple 
 
 all: subdirs
 

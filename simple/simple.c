@@ -40,7 +40,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 /*
  * Open the device; in fact, there's nothing to do here.
  */
-static int simple_open (struct inode *inode, struct file *filp)
+int simple_open (struct inode *inode, struct file *filp)
 {
 	return 0;
 }
@@ -49,7 +49,7 @@ static int simple_open (struct inode *inode, struct file *filp)
 /*
  * Closing is just as simpler.
  */
-static int simple_release(struct inode *inode, struct file *filp)
+int simple_release(struct inode *inode, struct file *filp)
 {
 	return 0;
 }
@@ -134,7 +134,7 @@ static int simple_nopage_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	if (offset >= __pa(high_memory) || (filp->f_flags & O_SYNC))
 		vma->vm_flags |= VM_IO;
-	vma->vm_flags |= VM_RESERVED;
+	vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
 
 	vma->vm_ops = &simple_nopage_vm_ops;
 	simple_vma_open(vma);

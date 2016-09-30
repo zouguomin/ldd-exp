@@ -29,6 +29,8 @@
 #include <linux/interrupt.h>
 
 #include <asm/hardirq.h>
+#include <linux/slab.h>
+
 /*
  * This module is a silly one: it only embeds short code fragments
  * that show how time delays can be handled in the kernel.
@@ -262,6 +264,7 @@ int jit_tasklet(char *buf, char **start, off_t offset,
 
 int __init jit_init(void)
 {
+#if 0
 	create_proc_read_entry("currentime", 0, NULL, jit_currentime, NULL);
 	create_proc_read_entry("jitbusy", 0, NULL, jit_fn, (void *)JIT_BUSY);
 	create_proc_read_entry("jitsched",0, NULL, jit_fn, (void *)JIT_SCHED);
@@ -271,12 +274,13 @@ int __init jit_init(void)
 	create_proc_read_entry("jitimer", 0, NULL, jit_timer, NULL);
 	create_proc_read_entry("jitasklet", 0, NULL, jit_tasklet, NULL);
 	create_proc_read_entry("jitasklethi", 0, NULL, jit_tasklet, (void *)1);
-
+#endif
 	return 0; /* success */
 }
 
 void __exit jit_cleanup(void)
 {
+#if 0
 	remove_proc_entry("currentime", NULL);
 	remove_proc_entry("jitbusy", NULL);
 	remove_proc_entry("jitsched", NULL);
@@ -286,6 +290,7 @@ void __exit jit_cleanup(void)
 	remove_proc_entry("jitimer", NULL);
 	remove_proc_entry("jitasklet", NULL);
 	remove_proc_entry("jitasklethi", NULL);
+#endif
 }
 
 module_init(jit_init);

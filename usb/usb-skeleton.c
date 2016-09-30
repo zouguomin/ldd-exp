@@ -20,7 +20,8 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/kref.h>
-#include <linux/smp_lock.h>
+//#include <linux/smp_lock.h>
+#include <linux/hardirq.h>
 #include <linux/usb.h>
 #include <asm/uaccess.h>
 
@@ -74,8 +75,8 @@ static int skel_open(struct inode *inode, struct file *file)
 
 	interface = usb_find_interface(&skel_driver, subminor);
 	if (!interface) {
-		err ("%s - error, can't find device for minor %d",
-		     __FUNCTION__, subminor);
+		pr_err("%s - error, can't find device for minor %d\n",
+			__func__, subminor);
 		retval = -ENODEV;
 		goto exit;
 	}
@@ -141,8 +142,9 @@ static void skel_write_bulk_callback(struct urb *urb, struct pt_regs *regs)
 	    !(urb->status == -ENOENT || 
 	      urb->status == -ECONNRESET ||
 	      urb->status == -ESHUTDOWN)) {
-		dbg("%s - nonzero write bulk status received: %d",
-		    __FUNCTION__, urb->status);
+			dev_err(&dev->interface->dev,
+				"%s - nonzero write bulk status received: %d\n",
+				__func__, urb->status);
 	}
 
 	/* free up our allocated buffer */
@@ -189,7 +191,9 @@ static ssize_t skel_write(struct file *file, const char __user *user_buffer, siz
 	/* send the data out the bulk port */
 	retval = usb_submit_urb(urb, GFP_KERNEL);
 	if (retval) {
-		err("%s - failed submitting write urb, error %d", __FUNCTION__, retval);
+		dev_err(&dev->interface->dev,
+			"%s - failed submitting write urb, error %d\n",
+			__func__, retval);
 		goto error;
 	}
 
@@ -262,7 +266,8 @@ static int skel_probe(struct usb_interface *interface, const struct usb_device_i
 			dev->bulk_in_endpointAddr = endpoint->bEndpointAddress;
 			dev->bulk_in_buffer = kmalloc(buffer_size, GFP_KERNEL);
 			if (!dev->bulk_in_buffer) {
-				err("Could not allocate bulk_in_buffer");
+				dev_err(&interface->dev,
+					"Could not allocate bulk_in_buffer\n");
 				goto error;
 			}
 		}
@@ -276,7 +281,8 @@ static int skel_probe(struct usb_interface *interface, const struct usb_device_i
 		}
 	}
 	if (!(dev->bulk_in_endpointAddr && dev->bulk_out_endpointAddr)) {
-		err("Could not find both bulk-in and bulk-out endpoints");
+		dev_err(&interface->dev,
+			"Could not find both bulk-in and bulk-out endpoints\n");
 		goto error;
 	}
 
@@ -287,13 +293,16 @@ static int skel_probe(struct usb_interface *interface, const struct usb_device_i
 	retval = usb_register_dev(interface, &skel_class);
 	if (retval) {
 		/* something prevented us from registering this driver */
-		err("Not able to get a minor for this device.");
+		dev_err(&interface->dev,
+			"Not able to get a minor for this device.\n");
 		usb_set_intfdata(interface, NULL);
 		goto error;
 	}
 
 	/* let the user know what node this device is now attached to */
-	//info("USB Skeleton device now attached to USBSkel-%d", interface->minor);
+	dev_info(&interface->dev,
+		 "USB Skeleton device now attached to USBSkel-%d",
+		 interface->minor);
 	return 0;
 
 error:

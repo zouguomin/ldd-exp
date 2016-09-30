@@ -76,6 +76,7 @@
 #define SCULL_P_BUFFER 4000
 #endif
 
+#define init_MUTEX(sem)     sema_init(sem, 1)
 /*
  * Representation of scull quantum sets.
  */
