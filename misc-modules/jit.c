@@ -93,14 +93,23 @@ int jit_fn(char *buf, char **start, off_t offset,
 /*
  * This file, on the other hand, returns the current time forever
  */
+#if 0 
 int jit_currentime(char *buf, char **start, off_t offset,
                    int len, int *eof, void *data)
+#endif
+int jit_currentime(struct file *file, char __user *buf, size_t size, loff_t *ppos)                   
 {
 	struct timeval tv1;
 	struct timespec tv2;
 	unsigned long j1;
 	u64 j2;
+    int len = 0;
 
+    //printk("##size = %d ppos = %d \n", size, *ppos);
+
+    if (*ppos > 0)
+        return 0;
+    
 	/* get them four */
 	j1 = jiffies;
 	j2 = get_jiffies_64();
@@ -108,13 +117,13 @@ int jit_currentime(char *buf, char **start, off_t offset,
 	tv2 = current_kernel_time();
 
 	/* print */
-	len=0;
+	//len=0;
 	len += sprintf(buf,"0x%08lx 0x%016Lx %10i.%06i\n"
 		       "%40i.%09i\n",
 		       j1, j2,
 		       (int) tv1.tv_sec, (int) tv1.tv_usec,
 		       (int) tv2.tv_sec, (int) tv2.tv_nsec);
-	*start = buf;
+    *ppos += len;
 	return len;
 }
 
@@ -261,6 +270,10 @@ int jit_tasklet(char *buf, char **start, off_t offset,
 }
 
 
+const struct file_operations currentime_fops = {
+	.owner = THIS_MODULE,
+	.read = jit_currentime,
+};
 
 int __init jit_init(void)
 {
@@ -275,6 +288,7 @@ int __init jit_init(void)
 	create_proc_read_entry("jitasklet", 0, NULL, jit_tasklet, NULL);
 	create_proc_read_entry("jitasklethi", 0, NULL, jit_tasklet, (void *)1);
 #endif
+    proc_create("currentime", S_IRUGO, NULL, &currentime_fops);
 	return 0; /* success */
 }
 
@@ -291,6 +305,7 @@ void __exit jit_cleanup(void)
 	remove_proc_entry("jitasklet", NULL);
 	remove_proc_entry("jitasklethi", NULL);
 #endif
+    remove_proc_entry("currentime", NULL);
 }
 
 module_init(jit_init);
