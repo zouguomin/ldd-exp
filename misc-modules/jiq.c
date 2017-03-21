@@ -28,6 +28,7 @@
 #include <linux/workqueue.h>
 #include <linux/preempt.h>
 #include <linux/interrupt.h> /* tasklets */
+#include <linux/seq_file.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -36,7 +37,6 @@ MODULE_LICENSE("Dual BSD/GPL");
  */
 static long delay = 1;
 module_param(delay, long, 0);
-
 
 /*
  * This module is a silly one: it only embeds short code fragments
@@ -52,10 +52,10 @@ module_param(delay, long, 0);
  */
 static DECLARE_WAIT_QUEUE_HEAD (jiq_wait);
 
-
 static struct work_struct jiq_work;
+static struct delayed_work jiq_delayed_work;
 
-
+//static DECLARE_DELAYED_WORK(balloon_worker, balloon_process);
 
 /*
  * Keep track of info we need between task queue runs.
@@ -65,15 +65,13 @@ static struct clientdata {
 	char *buf;
 	unsigned long jiffies;
 	long delay;
+    struct seq_file *s_file;
 } jiq_data;
 
 #define SCHEDULER_QUEUE ((task_queue *) 1)
 
-
-
 static void jiq_print_tasklet(unsigned long);
 static DECLARE_TASKLET(jiq_tasklet, jiq_print_tasklet, (unsigned long)&jiq_data);
-
 
 /*
  * Do the printing; return non-zero if the task should be rescheduled.
@@ -82,31 +80,34 @@ static int jiq_print(void *ptr)
 {
 	struct clientdata *data = ptr;
 	int len = data->len;
-	char *buf = data->buf;
+	//char *buf = data->buf;
 	unsigned long j = jiffies;
+    char buf[128] = {0};
 
 	if (len > LIMIT) { 
 		wake_up_interruptible(&jiq_wait);
 		return 0;
 	}
 
-	if (len == 0)
-		len = sprintf(buf,"    time  delta preempt   pid cpu command\n");
-	else
+	if (len == 0) {
+        len = sprintf(buf,"    time  delta preempt   pid cpu command\n");
+		seq_printf(data->s_file, "%s", buf);
+    } else
 		len =0;
 
   	/* intr_count is only exported since 1.3.5, but 1.99.4 is needed anyways */
-	len += sprintf(buf+len, "%9li  %4li     %3i %5i %3i %s\n",
+	len += sprintf(buf, "%9li  %4li     %3i %5i %3i %s\n",
 			j, j - data->jiffies,
 			preempt_count(), current->pid, smp_processor_id(),
 			current->comm);
+    seq_printf(data->s_file, "%s", buf);
 
 	data->len += len;
-	data->buf += len;
+	//data->buf += len;
 	data->jiffies = j;
+
 	return 1;
 }
-
 
 /*
  * Call jiq_print from a work queue
@@ -121,54 +122,54 @@ static void jiq_print_wq(struct work_struct *work)
 		return;
     
 	if (data->delay)
-		schedule_delayed_work(&jiq_work, data->delay);
+		schedule_delayed_work(&jiq_delayed_work, data->delay);
 	else
 		schedule_work(&jiq_work);
 }
 
-
-
-static int jiq_read_wq(char *buf, char **start, off_t offset,
-                   int len, int *eof, void *data)
+//static int jiq_read_wq(char *buf, char **start, off_t offset,
+//                   int len, int *eof, void *data)
+static int jiq_read_wq(struct seq_file *s, void *unused)
 {
 	DEFINE_WAIT(wait);
 	
 	jiq_data.len = 0;                /* nothing printed, yet */
-	jiq_data.buf = buf;              /* print in this place */
+	//jiq_data.buf = buf;              /* print in this place */
 	jiq_data.jiffies = jiffies;      /* initial time */
 	jiq_data.delay = 0;
+    jiq_data.s_file = s;
     
 	prepare_to_wait(&jiq_wait, &wait, TASK_INTERRUPTIBLE);
 	schedule_work(&jiq_work);
 	schedule();
 	finish_wait(&jiq_wait, &wait);
 
-	*eof = 1;
-	return jiq_data.len;
+	//*eof = 1;
+	//return jiq_data.len;
+	return 0;
 }
 
-
-static int jiq_read_wq_delayed(char *buf, char **start, off_t offset,
-                   int len, int *eof, void *data)
+//static int jiq_read_wq_delayed(char *buf, char **start, off_t offset,
+//                   int len, int *eof, void *data)
+static int jiq_read_wq_delayed(struct seq_file *s, void *unused)
 {
 	DEFINE_WAIT(wait);
 	
 	jiq_data.len = 0;                /* nothing printed, yet */
-	jiq_data.buf = buf;              /* print in this place */
+	//jiq_data.buf = buf;              /* print in this place */
 	jiq_data.jiffies = jiffies;      /* initial time */
 	jiq_data.delay = delay;
+    jiq_data.s_file = s;
     
 	prepare_to_wait(&jiq_wait, &wait, TASK_INTERRUPTIBLE);
-	schedule_delayed_work(&jiq_work, delay);
+	schedule_delayed_work(&jiq_delayed_work, delay);
 	schedule();
 	finish_wait(&jiq_wait, &wait);
 
-	*eof = 1;
-	return jiq_data.len;
+	//*eof = 1;
+	//return jiq_data.len;
+    return 0;
 }
-
-
-
 
 /*
  * Call jiq_print from a tasklet
@@ -179,45 +180,43 @@ static void jiq_print_tasklet(unsigned long ptr)
 		tasklet_schedule (&jiq_tasklet);
 }
 
-
-
-static int jiq_read_tasklet(char *buf, char **start, off_t offset, int len,
-                int *eof, void *data)
+//static int jiq_read_tasklet(char *buf, char **start, off_t offset, int len,
+//                int *eof, void *data)
+static int jiq_read_tasklet(struct seq_file *s, void *unused)
 {
 	jiq_data.len = 0;                /* nothing printed, yet */
-	jiq_data.buf = buf;              /* print in this place */
+	//jiq_data.buf = buf;              /* print in this place */
 	jiq_data.jiffies = jiffies;      /* initial time */
+    jiq_data.s_file = s;
 
 	tasklet_schedule(&jiq_tasklet);
 	interruptible_sleep_on(&jiq_wait);    /* sleep till completion */
 
-	*eof = 1;
-	return jiq_data.len;
+	//*eof = 1;
+	//return jiq_data.len;
+	return 0;
 }
-
-
-
 
 /*
  * This one, instead, tests out the timers.
  */
 
 static struct timer_list jiq_timer;
-
 static void jiq_timedout(unsigned long ptr)
 {
 	jiq_print((void *)ptr);            /* print a line */
 	wake_up_interruptible(&jiq_wait);  /* awake the process */
 }
 
-
-static int jiq_read_run_timer(char *buf, char **start, off_t offset,
-                   int len, int *eof, void *data)
+//static int jiq_read_run_timer(char *buf, char **start, off_t offset,
+//                   int len, int *eof, void *data)
+static int jiq_read_run_timer(struct seq_file *s, void *unused)
 {
 
 	jiq_data.len = 0;           /* prepare the argument for jiq_print() */
-	jiq_data.buf = buf;
+	//jiq_data.buf = buf;
 	jiq_data.jiffies = jiffies;
+    jiq_data.s_file = s;
 
 	init_timer(&jiq_timer);              /* init the timer structure */
 	jiq_timer.function = jiq_timedout;
@@ -229,41 +228,86 @@ static int jiq_read_run_timer(char *buf, char **start, off_t offset,
 	interruptible_sleep_on(&jiq_wait);  /* RACE */
 	del_timer_sync(&jiq_timer);  /* in case a signal woke us up */
     
-	*eof = 1;
-	return jiq_data.len;
+	//*eof = 1;
+	//return jiq_data.len;
+	return 0;
 }
 
+static int proc_jitwq_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, jiq_read_wq, PDE_DATA(inode));
+}
 
+static const struct file_operations jitwq_fops = {
+	.owner		= THIS_MODULE,
+	.open		= proc_jitwq_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int proc_jitwq_delayed_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, jiq_read_wq_delayed, PDE_DATA(inode));
+}
+
+static const struct file_operations jitwq_delay_fops = {
+	.owner		= THIS_MODULE,
+	.open		= proc_jitwq_delayed_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int proc_jitimer_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, jiq_read_run_timer, PDE_DATA(inode));
+}
+
+static const struct file_operations jitimer_fops = {
+	.owner		= THIS_MODULE,
+	.open		= proc_jitimer_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int proc_jiqtasklet_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, jiq_read_tasklet, PDE_DATA(inode));
+}
+
+static const struct file_operations jiqtasklet_fops = {
+	.owner		= THIS_MODULE,
+	.open		= proc_jiqtasklet_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
 
 /*
  * the init/clean material
  */
-
 static int jiq_init(void)
 {
-
 	/* this line is in jiq_init() */
 	//INIT_WORK(&jiq_work, jiq_print_wq, &jiq_data);
 	INIT_WORK(&jiq_work, jiq_print_wq);
-#if 0
-	create_proc_read_entry("jiqwq", 0, NULL, jiq_read_wq, NULL);
-	create_proc_read_entry("jiqwqdelay", 0, NULL, jiq_read_wq_delayed, NULL);
-	create_proc_read_entry("jitimer", 0, NULL, jiq_read_run_timer, NULL);
-	create_proc_read_entry("jiqtasklet", 0, NULL, jiq_read_tasklet, NULL);
-#endif
+	INIT_DELAYED_WORK(&jiq_delayed_work, jiq_print_wq);
+    proc_create("jiqwq", S_IRUGO, NULL, &jitwq_fops);
+    proc_create("jiqwqdelay", S_IRUGO, NULL, &jitwq_delay_fops);
+    proc_create("jitimer", S_IRUGO, NULL, &jitimer_fops);
+    proc_create("jiqtasklet", S_IRUGO, NULL, &jiqtasklet_fops);
 	return 0; /* succeed */
 }
 
 static void jiq_cleanup(void)
 {
-#if 0
 	remove_proc_entry("jiqwq", NULL);
 	remove_proc_entry("jiqwqdelay", NULL);
 	remove_proc_entry("jitimer", NULL);
 	remove_proc_entry("jiqtasklet", NULL);
-#endif
 }
-
 
 module_init(jiq_init);
 module_exit(jiq_cleanup);
